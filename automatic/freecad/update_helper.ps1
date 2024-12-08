@@ -6,16 +6,14 @@ param(
   [string]$uri = $releases,
   [string]$ScriptLocation = $PSScriptRoot
 )
-  
-#  $download_page = Invoke-WebRequest -Uri $uri -UseBasicParsing
-
+  $os = "Windows"
+  $platform = "x\d{2}_\d{2}" #x86_64
+  $pyver = "py\d{2,5}"
   switch ($kind) {
     'dev' {
       $download_page = (Get-GitHubRelease -Owner "Freecad" -Name "Freecad-Bundle" -TagName "weekly-builds" -Verbose).assets
-      $mobile = "Windows"
       $ext = "7z"
-      $re64 = "(FreeCAD_weekly-builds)?((\-\d{2,6})+)?(\-conda)?(\-${mobile})(\-|.)?(x\d{2}_\d{2}\-)?(py\d{2,5})?(\.$ext)$"
-#      $url64 = ( $download_page.Links | ? href -match $re64 | Select-Object -First 1 -ExpandProperty 'href' )
+      $re64 = "(FreeCAD_weekly-builds)((\-\d{2,6})+)?(\-conda)?(\-${os})(\-${platform})?(\-${pyver})?(\.$ext)$"
       $asset64 = ( $download_page | Where-Object Name -match $re64 | Select-Object -First 1 )
       $url64 = $asset64.browser_download_url
       "url64 -$url64-" | Write-Warning
@@ -23,7 +21,7 @@ param(
       $Title        = "$Title"
       # Now to get the newest Revision with date from asset64
       $dateCreated = Get-Date -Date $asset64.created_at -UFormat "%Y.%m.%d"
-      $veri = ((($url64 -split('\/'))[-1]) -replace( "(x\d{2})|(_\d{2}\-py\d{2,5})|(\-)?([A-z])+?(\-)|(\.$ext)", ''))
+      $veri = ((($url64 -split('\/'))[-1]) -replace( "(${platform}\-${pyver})|(\-)?([A-z])+?(\-)|(\.$ext)", ''))
       "veri -$veri-" | Write-Warning
       $DevRevision = (($veri -replace('\-','.') ) -split('\.')) | Select-Object -First 1
       "Standard Development Versioning for $DevRevision dated ${dateCreated}" | Write-Warning
@@ -32,27 +30,23 @@ param(
     }
     'portable' {
       $download_page = (Get-GitHubRelease -Owner "Freecad" -Name "Freecad" -Verbose).assets
-      $mobile = "portable"
       $ext = "7z"
-      $re64 = "(FreeCAD\-)((\d+)?(\.))+?(\d)?(\-)(Windows)(\-)?(x\d{2})(\-|.)?(\d+)?(\.${ext})$"
-#      $url64 = ( $download_page.Links | ? href -match $re64 | Sort-Object -Property 'href' -Descending | Select-Object -First 1 -ExpandProperty 'href' )
+      $re64 = "(FreeCAD_)((\d+\.?)+)?(\-conda)?(\-${os})(\-${platform})?(\-${pyver})?(\.$ext)$"
       $url64 = ( $download_page | Where-Object Name -match $re64 | Select-Object -First 1 -ExpandProperty 'browser_download_url' )
       $vert = "$version"
       $PackageName  = "$Title.$kind"
       $Title        = "$Title (Portable)"
-      [version]$version = ( Get-Version (($url64.Split('\/'))[-1]) ).Version
+      [version]$version = ( Get-Version $url64.Split('/')[-1] ).Version
     }
     'stable' {
       $download_page =  (Get-GitHubRelease -Owner "Freecad" -Name "Freecad" -Verbose).assets
-      $mobile = "installer"
       $ext = "exe"
-      $re64 = "(FreeCAD\-)((\d+)?(\.))+?(\d)?(\-)(WIN)(\-)?(x\d{2})\-(${mobile})(\-|.)?(\d+)?(\.${ext})$"
-#      $url64 = ( $download_page.Links | ? href -match $re64 | Sort-Object -Property 'href' -Descending | Select-Object -First 1 -ExpandProperty 'href' )
+      $re64 = "(FreeCAD_)((\d+\.?)+)?(\-conda)?(\-${os})(\-${platform})?(\-installer)(\-(\d+))?(\-${pyver})?(\.$ext)$"
       $url64 = ( $download_page | Where-Object Name -match $re64 | Select-Object -First 1 -ExpandProperty 'browser_download_url' )
       $vert = "$version"
       $PackageName  = "$Title"
       $Title        = "$Title"
-      [version]$version = ( Get-Version (($url64.Split('\/'))[-1]) ).Version
+      [version]$version = ( Get-Version $url64.Split('/')[-1] ).Version
     }
   }
   
